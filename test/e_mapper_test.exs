@@ -30,15 +30,24 @@ defmodule EMapperTest do
   end
 
   test "can ignore! prop" do
-    assert EMapper.map(%Test{id: 1, value: 3}, TestViewModel, [id: :ignore!]) == %TestViewModel{id: nil, value: 3}
+    assert EMapper.map(%Test{id: 1, value: 3}, TestViewModel, id: :ignore!) == %TestViewModel{
+             id: nil,
+             value: 3
+           }
   end
 
   test "can map with callbacks" do
-    assert EMapper.map(%Test{id: 1, value: 3}, Test_1, [value_1: & &1.value + 1]) == %Test_1{id: 1, value_1: 4}
+    assert EMapper.map(%Test{id: 1, value: 3}, Test_1, value_1: &(&1.value + 1)) == %Test_1{
+             id: 1,
+             value_1: 4
+           }
   end
 
   test "can map with properties" do
-    assert EMapper.map(%Test{id: 1, value: 3}, Test_1, [value_1: :value]) == %Test_1{id: 1, value_1: 3}
+    assert EMapper.map(%Test{id: 1, value: 3}, Test_1, value_1: :value) == %Test_1{
+             id: 1,
+             value_1: 3
+           }
   end
 
   test "can reverse map" do
@@ -54,28 +63,50 @@ defmodule EMapperTest do
   end
 
   test "can map based on mapping profile" do
-    EMapper.add_mapping(Test, Test_1, [value_1: & &1.value])
+    EMapper.add_mapping(Test, Test_1, value_1: & &1.value)
 
     assert EMapper.map(%Test{id: 1, value: 3}, Test_1) == %Test_1{id: 1, value_1: 3}
   end
 
   test "can map based on several mapping profiles" do
-    EMapper.add_mapping(Test, Test_2, [value_1: :value])
-    EMapper.add_mapping(Test, Test_2, [value_2: & &1.value + 2])
+    EMapper.add_mapping(Test, Test_2, value_1: :value)
+    EMapper.add_mapping(Test, Test_2, value_2: &(&1.value + 2))
 
     assert EMapper.map(%Test{id: 1, value: 3}, Test_2) == %Test_2{id: 1, value_1: 3, value_2: 5}
   end
 
   test "can override mapping" do
-    EMapper.add_mapping(Test, Test_2, [value_1: :value, value_2: :value])
-    EMapper.add_mapping(Test, Test_2, [value_2: & &1.value + 2])
+    EMapper.add_mapping(Test, Test_2, value_1: :value, value_2: :value)
+    EMapper.add_mapping(Test, Test_2, value_2: &(&1.value + 2))
 
     assert EMapper.map(%Test{id: 1, value: 3}, Test_2) == %Test_2{id: 1, value_1: 3, value_2: 5}
   end
 
   test "can map to anything" do
-    assert EMapper.map(%Test{id: 1, value: 3}, :string, [string: & inspect/1]) == inspect(%Test{id: 1, value: 3})
-    EMapper.add_mapping(Test, :number, [number: & &1.value])
+    assert EMapper.map(%Test{id: 1, value: 3}, :string, string: &inspect/1) ==
+             inspect(%Test{id: 1, value: 3})
+
+    EMapper.add_mapping(Test, :number, number: & &1.value)
     assert EMapper.map(%Test{id: 1, value: 3}, :number) == 3
   end
+
+  test "can reduce" do
+    assert get_reduce_list()
+           |> EMapper.reduce(Test_1, id: 1, value_1: 0, value_1: &(&1.value + &2)) == %Test_1{
+             id: 1,
+             value_1: 11
+           }
+  end
+
+  test "can reduce based on mapping profile" do
+    EMapper.add_reduce(Test, Test_1, id: 1, value_1: 0, value_1: &(&1.value + &2))
+
+    assert get_reduce_list() |> EMapper.reduce(Test, Test_1) == %Test_1{
+             id: 1,
+             value_1: 11
+           }
+  end
+
+  defp get_reduce_list,
+    do: [%Test{id: 1, value: 2}, %Test{id: 2, value: 4}, %Test{id: 3, value: 5}]
 end
