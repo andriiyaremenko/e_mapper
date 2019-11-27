@@ -8,28 +8,28 @@ defmodule EMapper do
   defdelegate add_mapping(type_1, type_2, opts), to: Server
   defdelegate add_mapping(type_1, type_2, opts, reverse_map), to: Server
 
-  @spec add_reduce(atom, atom, list({atom, (term, term -> term)})) :: :ok | {:error, term}
+  @spec add_reduce(atom, atom, list({atom, (term, term -> term) | term})) :: :ok | {:error, term}
   def add_reduce(type_1, type_2, options),
     do: type_1 |> get_reduce_atom() |> Server.add_mapping(type_2, options)
 
   @spec map(list(struct), atom) :: list(term)
-  def map(elements, type) when is_list(elements) do
+  def map(elements, type) when is_list(elements) and is_atom(type) do
     elements |> Enum.map(&map(&1, type))
   end
 
   @spec map(struct, atom) :: term
-  def map(el, type) do
+  def map(el, type) when is_atom(type) do
     opts = el |> Map.get(:__struct__) |> Server.get_mapping(type)
     map(el, type, opts)
   end
 
   @spec map(list(struct), atom, list({atom, (term -> term) | :ignore! | atom})) :: list(term)
-  def map(elements, type, options) when is_list(elements) do
+  def map(elements, type, options) when is_list(elements) and is_atom(type) do
     elements |> Enum.map(&map(&1, type, options))
   end
 
   @spec map(struct, atom, list({atom, (term -> term) | :ignore! | atom})) :: term
-  def map(el, type, options) do
+  def map(el, type, options) when is_atom(type) do
     with f when is_function(f) <- options[type] do
       f.(el)
     else
@@ -46,8 +46,8 @@ defmodule EMapper do
     reduce(elements, type_2, opts)
   end
 
-  @spec reduce(list(struct), atom, list({atom, (term, term -> term)})) :: term
-  def reduce(elements, type, options) when is_list(options) do
+  @spec reduce(list(struct), atom, list({atom, (term, term -> term) | term})) :: term
+  def reduce(elements, type, options) when is_list(options) and is_atom(type) do
     case elements do
       nil ->
         struct(type)
@@ -101,8 +101,8 @@ defmodule EMapper do
   defp fill_struct(struct, options) do
     options
     |> Enum.filter(fn {key, value} -> not is_function(value) and Map.has_key?(struct, key) end)
-    |> Enum.reduce(struct, fn ({key, value}, acc) -> Map.put(acc, key, value) end)
+    |> Enum.reduce(struct, fn {key, value}, acc -> Map.put(acc, key, value) end)
   end
 
-  defp get_reduce_atom(type), do: :"reduce:#{type}"
+  defp get_reduce_atom(type), do: :"reduce(#{type})"
 end
