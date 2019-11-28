@@ -3,6 +3,7 @@ defmodule EMapper.Server do
   require Logger
 
   alias :ets, as: Ets
+  alias EMapper.Utils
 
   # Client
   def start_link(_opts) do
@@ -42,6 +43,10 @@ defmodule EMapper.Server do
       error -> {:error, error}
     end
   end
+
+  @spec add_reduce(atom, atom, list({atom, (term, term -> term) | term})) :: :ok | {:error, term}
+  def add_reduce(type_1, type_2, options),
+    do: type_1 |> Utils.get_reduce_atom() |> add_mapping(type_2, options)
 
   def delete_mappings() do
     GenServer.cast(__MODULE__, :delete_mappings)

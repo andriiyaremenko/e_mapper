@@ -90,8 +90,39 @@ defmodule EMapperTest do
     assert EMapper.map(%Test{id: 1, value: 3}, :number) == 3
   end
 
+  test "can map to existing item" do
+    assert EMapper.map(%Test{id: 1, value: 3}, %Test_2{value_2: 5}, Test_2, value_1: :value) ==
+             %Test_2{id: 1, value_1: 3, value_2: 5}
+  end
+
+  test "can map to existing item based on mapping profile" do
+    EMapper.add_mapping(Test, Test_2, value_1: :value)
+
+    assert EMapper.map(%Test{id: 1, value: 3}, %Test_2{value_2: 5}, Test_2) == %Test_2{
+             id: 1,
+             value_1: 3,
+             value_2: 5
+           }
+  end
+
+  test "can map list" do
+    EMapper.add_mapping(Test, Test_2, value_1: :value)
+
+    assert get_list() |> EMapper.map(Test_2) == [
+             %Test_2{id: 1, value_1: 2, value_2: nil},
+             %Test_2{id: 2, value_1: 4, value_2: nil},
+             %Test_2{id: 3, value_1: 5, value_2: nil}
+           ]
+
+    assert get_list() |> EMapper.map(%Test_2{value_2: 5}, Test_2) == [
+             %Test_2{id: 1, value_1: 2, value_2: 5},
+             %Test_2{id: 2, value_1: 4, value_2: 5},
+             %Test_2{id: 3, value_1: 5, value_2: 5}
+           ]
+  end
+
   test "can reduce" do
-    assert get_reduce_list()
+    assert get_list()
            |> EMapper.reduce(Test_1, id: 1, value_1: 0, value_1: &(&1.value + &2)) == %Test_1{
              id: 1,
              value_1: 11
@@ -101,12 +132,33 @@ defmodule EMapperTest do
   test "can reduce based on mapping profile" do
     EMapper.add_reduce(Test, Test_1, id: 1, value_1: 0, value_1: &(&1.value + &2))
 
-    assert get_reduce_list() |> EMapper.reduce(Test, Test_1) == %Test_1{
+    assert get_list() |> EMapper.reduce(Test, Test_1) == %Test_1{
              id: 1,
              value_1: 11
            }
   end
 
-  defp get_reduce_list,
+  test "can reduce to existing item" do
+    assert get_list()
+           |> EMapper.reduce(%Test_2{value_1: 0, value_2: 7}, id: 1, value_1: &(&1.value + &2)) ==
+             %Test_2{
+               id: 1,
+               value_1: 11,
+               value_2: 7
+             }
+  end
+
+  test "can reduce to existing item based on mapping profile" do
+    EMapper.add_reduce(Test, Test_2, value_1: &(&1.value + &2))
+    assert get_list()
+           |> EMapper.reduce(Test, %Test_2{id: 1, value_1: 0, value_2: 7}) ==
+             %Test_2{
+               id: 1,
+               value_1: 11,
+               value_2: 7
+             }
+  end
+
+  defp get_list,
     do: [%Test{id: 1, value: 2}, %Test{id: 2, value: 4}, %Test{id: 3, value: 5}]
 end

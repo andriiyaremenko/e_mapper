@@ -3,14 +3,13 @@ defmodule EMapper do
   Documentation for EMapper.
   """
 
-  alias EMapper.Server
+  alias EMapper.{Server, Utils}
 
   defdelegate add_mapping(type_1, type_2, opts), to: Server
   defdelegate add_mapping(type_1, type_2, opts, reverse_map), to: Server
+  defdelegate add_reduce(type_1, type_2, opts), to: Server
 
-  @spec add_reduce(atom, atom, list({atom, (term, term -> term) | term})) :: :ok | {:error, term}
-  def add_reduce(type_1, type_2, options),
-    do: type_1 |> get_reduce_atom() |> Server.add_mapping(type_2, options)
+  # map
 
   @spec map(list(struct), atom) :: list(term)
   def map(elements, type) when is_list(elements) and is_atom(type) do
@@ -23,86 +22,101 @@ defmodule EMapper do
     map(el, type, opts)
   end
 
-  @spec map(list(struct), atom, list({atom, (term -> term) | :ignore! | atom})) :: list(term)
-  def map(elements, type, options) when is_list(elements) and is_atom(type) do
+  @spec map(list(struct), term, atom) :: list(term)
+  def map(elements, item, type) when is_list(elements) and is_atom(type) do
+    elements |> Enum.map(&map(&1, item, type))
+  end
+
+  @spec map(struct, term, atom) :: term
+  def map(el, item, type) when is_atom(type) do
+    opts = el |> Map.get(:__struct__) |> Server.get_mapping(type)
+    map(el, item, type, opts)
+  end
+
+  @spec map(
+          list(struct),
+          atom,
+          list({:after_map | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
+        ) :: list(term)
+  def map(elements, type, options)
+      when is_list(elements) and is_atom(type) and is_list(options) do
     elements |> Enum.map(&map(&1, type, options))
   end
 
-  @spec map(struct, atom, list({atom, (term -> term) | :ignore! | atom})) :: term
+  @spec map(
+          struct,
+          atom,
+          list({:after_map | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
+        ) :: term
   def map(el, type, options) when is_atom(type) do
     with f when is_function(f) <- options[type] do
       f.(el)
     else
       _ ->
         [_struct | props] = type |> struct() |> Map.keys()
-        map(props, el, type, options)
+        Utils.map(props, el, type, options)
     end
   end
 
+  @spec map(
+          list(struct),
+          term,
+          atom,
+          list({:after_map | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
+        ) :: list(term)
+  def map(elements, item, type, options)
+      when is_list(elements) and is_atom(type) and is_list(options) do
+    elements |> Enum.map(&map(&1, item, type, options))
+  end
+
+  @spec map(
+          struct,
+          term,
+          atom,
+          list({:after_map | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
+        ) :: term
+  def map(el, item, type, options) when is_atom(type) do
+    with f when is_function(f) <- options[type] do
+      f.(el, item)
+    else
+      _ ->
+        [_struct | props] = type |> struct() |> Map.keys()
+        Utils.map(props, item, el, type, options)
+    end
+  end
+
+  # reduce
+
   @spec reduce(list(struct), atom, atom) :: term
-  def reduce(elements, type_1, type_2) when is_atom(type_2) do
-    opts = type_1 |> get_reduce_atom() |> Server.get_mapping(type_2)
+  def reduce(elements, type_1, type_2)
+      when is_list(elements) and is_atom(type_1) and is_atom(type_2) do
+    opts = type_1 |> Utils.get_reduce_atom() |> Server.get_mapping(type_2)
 
     reduce(elements, type_2, opts)
   end
 
   @spec reduce(list(struct), atom, list({atom, (term, term -> term) | term})) :: term
-  def reduce(elements, type, options) when is_list(options) and is_atom(type) do
-    case elements do
-      nil ->
-        struct(type)
-
-      elements when is_list(elements) ->
-        elements
-        |> Enum.reduce(type |> struct() |> fill_struct(options), &reduce(&1, &2, type, options))
-
-      _ ->
-        throw(
-          {:error,
-           %ArgumentError{
-             message:
-               "Wrong argument: \nreduce(#{inspect(elements)}, #{inspect(type)}, #{
-                 inspect(options)
-               })\nShould be: reduce(list(struct), ...)"
-           }}
-        )
-    end
+  def reduce(elements, type, options)
+      when is_list(elements) and is_atom(type) and is_list(options) do
+    item = type |> struct()
+    reduce(elements, item, options)
   end
 
-  defp map(props, el, type, options) do
-    values =
-      props
-      |> Enum.map(
-        &case options[&1] do
-          :ignore! -> nil
-          nil -> el |> Map.get(&1)
-          f when is_function(f) -> f.(el)
-          prop when is_atom(prop) -> el |> Map.get(prop)
-        end
-      )
+  @spec reduce(list(struct), atom, struct) :: term
+  def reduce(elements, type_1, item)
+      when is_list(elements) and is_atom(type_1) do
+    opts = type_1 |> Utils.get_reduce_atom() |> Server.get_mapping(Map.get(item, :__struct__))
 
-    struct(type, Enum.zip(props, values))
+    reduce(elements, item, opts)
   end
 
-  defp reduce(el, acc, type, options) do
-    with f when is_function(f) <- options[type] do
-      f.(el, acc)
-    else
-      _ ->
-        result =
-          options
-          |> Enum.filter(fn {key, reducer} -> is_function(reducer) and Map.has_key?(acc, key) end)
-          |> Enum.map(fn {key, reducer} -> {key, reducer.(el, Map.get(acc, key))} end)
-
-        fill_struct(acc, result)
-    end
+  @spec reduce(list(struct), struct, list({atom, (term, term -> term) | term})) :: term
+  def reduce(elements, item, options)
+      when is_list(elements) and is_list(options) do
+    elements
+    |> Enum.reduce(
+      item |> Utils.fill_struct(options),
+      &Utils.reduce(&1, &2, Map.get(item, :__struct__), options)
+    )
   end
-
-  defp fill_struct(struct, options) do
-    options
-    |> Enum.filter(fn {key, value} -> not is_function(value) and Map.has_key?(struct, key) end)
-    |> Enum.reduce(struct, fn {key, value}, acc -> Map.put(acc, key, value) end)
-  end
-
-  defp get_reduce_atom(type), do: :"reduce(#{type})"
 end
