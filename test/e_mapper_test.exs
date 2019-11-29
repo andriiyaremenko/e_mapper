@@ -1,3 +1,19 @@
+defmodule User do
+  defstruct [:id, :first_name, :last_name]
+end
+
+defmodule Employee do
+  defstruct [:id, :short_name, :full_name]
+end
+
+defmodule Transaction do
+  defstruct [:id, :amount]
+end
+
+defmodule Balance do
+  defstruct [:id, :amount]
+end
+
 defmodule Test do
   defstruct [:id, :value]
 end
