@@ -1,7 +1,7 @@
 defmodule EMapper do
   @moduledoc """
   # Documentation for EMapper.
-  It is made for making transforming structs into other objects more simple
+  It is made for making transforming structs into other objects simple
   """
 
   alias EMapper.{Server, Utils}
@@ -28,8 +28,13 @@ defmodule EMapper do
 
   ## Examples:
 
-    iex> EMapper.add_mapping(User, Employee, short_name: :first_name, full_name: & &1.first_name <> " " <> &1.last_name)
+  ```elixir
+    iex> EMapper.add_mapping(User, Employee,
+    ...> short_name: :first_name,
+    ...> full_name: & &1.first_name <> " " <> &1.last_name)
     :ok
+
+  ```
   """
   defdelegate add_mapping(type_1, type_2, opts), to: Server
 
@@ -57,8 +62,14 @@ defmodule EMapper do
 
   ## Examples:
 
-    iex> EMapper.add_mapping(User, Employee, [short_name: :first_name, full_name: & &1.first_name <> " " <> &1.last_name], :reverse_map)
+  ```elixir
+    iex> EMapper.add_mapping(User, Employee,
+    ...> [short_name: :first_name,
+    ...> full_name: & &1.first_name <> " " <> &1.last_name],
+    ...> :reverse_map)
     :ok
+
+  ```
   """
   defdelegate add_mapping(type_1, type_2, opts, reverse_map), to: Server
 
@@ -82,8 +93,11 @@ defmodule EMapper do
 
   ## Examples:
 
-    iex> EMapper.add_reduce(User, Employee, [short_name: & &2 + &1])
+  ```elixir
+    iex> EMapper.add_reduce(Transaction, Balance, amount: & &2 + &1.amount)
     :ok
+
+  ```
   """
   defdelegate add_reduce(type_1, type_2, opts), to: Server
 
@@ -100,10 +114,17 @@ defmodule EMapper do
 
   ## Examples:
 
-    iex> EMapper.add_mapping(User, Employee, short_name: :first_name, full_name: & &1.first_name <> " " <> &1.last_name)
-    iex> [%User{id: 1, first_name: "John", last_name: "Savage"}, %User{id: 2, first_name: "Pete" last_name: "Funny"}]
+  ```elixir
+    iex> EMapper.add_mapping(User, Employee,
+    ...> short_name: :first_name,
+    ...> full_name: & &1.first_name <> " " <> &1.last_name)
+    iex> [%User{id: 1, first_name: "John", last_name: "Savage"},
+    ...> %User{id: 2, first_name: "Pete" last_name: "Funny"}]
     ...> |> EMapper.map(Employee)
-    [%Employee{id: 1, short_name: "John", full_name: "Jonh Savage"}, %Employee{id: 2, short_name: "Pete" full_name: "Pete Funny"}]
+    [%Employee{id: 1, short_name: "John", full_name: "Jonh Savage"},
+      %Employee{id: 2, short_name: "Pete" full_name: "Pete Funny"}]
+
+  ```
   """
   @spec map(list(struct), atom) :: list(term)
   def map(elements, type) when is_list(elements) and is_atom(type) do
@@ -121,9 +142,14 @@ defmodule EMapper do
 
   ## Examples:
 
-    iex> EMapper.add_mapping(User, Employee, short_name: :first_name, full_name: & &1.first_name <> " " <> &1.last_name)
+  ```elixir
+    iex> EMapper.add_mapping(User, Employee,
+    ...> short_name: :first_name,
+    ...> full_name: & &1.first_name <> " " <> &1.last_name)
     iex> %User{id: 1, first_name: "John", last_name: "Savage"} |> EMapper.map(Employee)
     %Employee{id: 1, short_name: "John", full_name: "John Savage"}
+
+    ```
   """
   @spec map(struct, atom) :: term
   def map(el, type) when is_atom(type) do
@@ -144,10 +170,17 @@ defmodule EMapper do
 
   ## Examples:
 
-    iex> EMapper.add_mapping(User, Employee, id: :ignore!, short_name: :first_name, full_name: & &1.first_name <> " " <> &1.last_name)
-    iex> [%User{id: 1, first_name: "John", last_name: "Savage"}, %User{id: 2, first_name: "Pete", last_name: "Funny"}]
+  ```elixir
+    iex> EMapper.add_mapping(User, Employee,
+    ...> short_name: :first_name,
+    ...> full_name: & &1.first_name <> " " <> &1.last_name)
+    iex> [%User{id: 1, first_name: "John", last_name: "Savage"},
+    ...> %User{id: 2, first_name: "Pete" last_name: "Funny"}]
     ...> |> EMapper.map(%Employee{id: 1}, Employee)
-    [%Employee{id: 1, short_name: "John", full_name: "John Savage"}, %Employee{id: 2, short_name: "Pete" full_name: "Pete Funny"}]
+    [%Employee{id: 1, short_name: "John", full_name: "John Savage"},
+      %Employee{id: 2, short_name: "Pete" full_name: "Pete Funny"}]
+
+  ```
   """
   @spec map(list(struct), term, atom) :: list(term)
   def map(elements, item, type) when is_list(elements) and is_atom(type) do
@@ -167,9 +200,15 @@ defmodule EMapper do
 
   ## Examples:
 
-    iex> EMapper.add_mapping(User, Employee, short_name: :first_name, full_name: & &1.first_name <> " " <> &1.last_name, id: :ignore!)
-    iex> %User{id: 1, first_name: "John", last_name: "Savage"} |> EMapper.map(%Employee{id: 1}, Employee)
+  ```elixir
+    iex> EMapper.add_mapping(User, Employee,
+    ...> short_name: :first_name,
+    ...> full_name: & &1.first_name <> " " <> &1.last_name)
+    iex> %User{id: 1, first_name: "John", last_name: "Savage"}
+    ...> |> EMapper.map(%Employee{id: 1}, Employee)
     %Employee{id: 1, short_name: "John", full_name: "John Savage"}
+
+  ```
   """
   @spec map(struct, term, atom) :: term
   def map(el, item, type) when is_atom(type) do
@@ -199,9 +238,16 @@ defmodule EMapper do
 
   ## Examples:
 
-    iex> [%User{id: 1, first_name: "John", last_name: "Savage"}, %User{id: 2, first_name: "Pete", last_name: "Funny"}]
-    ...> |> EMapper.map(Employee, short_name: :first_name, full_name: & &1.first_name <> " " <> &1.last_name)
-    [%Employee{id: 1, short_name: "John", full_name: "John Savage"}, %Employee{id: 2, short_name: "Pete" full_name: "Pete Funny"}]
+  ```elixir
+    iex> [%User{id: 1, first_name: "John", last_name: "Savage"},
+    ...> %User{id: 2, first_name: "Pete", last_name: "Funny"}]
+    ...> |> EMapper.map(Employee,
+    ...> short_name: :first_name,
+    ...> full_name: & &1.first_name <> " " <> &1.last_name)
+    [%Employee{id: 1, short_name: "John", full_name: "John Savage"},
+      %Employee{id: 2, short_name: "Pete" full_name: "Pete Funny"}]
+
+  ```
   """
   @spec map(
           list(struct),
@@ -235,9 +281,14 @@ defmodule EMapper do
 
   ## Examples:
 
+  ```elixir
     iex> %User{id: 1, first_name: "John", last_name: "Savage"}
-    ...> |> EMapper.map(Employee, short_name: :first_name, full_name: & &1.first_name <> " " <> &1.last_name)
+    ...> |> EMapper.map(Employee,
+    ...> short_name: :first_name,
+    ...> full_name: & &1.first_name <> " " <> &1.last_name)
     %Employee{id: 1, short_name: "John", full_name: "John Savage"}
+
+  ```
   """
   @spec map(
           struct,
@@ -278,9 +329,17 @@ defmodule EMapper do
 
   ## Examples:
 
-    iex> [%User{id: 1, first_name: "John", last_name: "Savage"}, %User{id: 2, first_name: "Pete", last_name: "Funny"}]
-    ...> |> EMapper.map(%Employee{id: 1}, Employee, id: :ignore!, short_name: :first_name, full_name: & &1.first_name <> " " <> &1.last_name)
-    [%Employee{id: 1, short_name: "John", full_name: "John Savage"}, %Employee{id: 2, short_name: "Pete" full_name: "Pete Funny"}]
+  ```elixir
+    iex> [%User{id: 1, first_name: "John", last_name: "Savage"},
+    ...> %User{id: 2, first_name: "Pete", last_name: "Funny"}]
+    ...> |> EMapper.map(%Employee{id: 1}, Employee,
+    ...> id: :ignore!,
+    ...> short_name: :first_name,
+    ...> full_name: & &1.first_name <> " " <> &1.last_name)
+    [%Employee{id: 1, short_name: "John", full_name: "John Savage"},
+      %Employee{id: 2, short_name: "Pete" full_name: "Pete Funny"}]
+
+  ```
   """
   @spec map(
           list(struct),
@@ -317,9 +376,15 @@ defmodule EMapper do
 
   ## Examples:
 
+  ```elixir
     iex> %User{id: 1, first_name: "John", last_name: "Savage"}
-    ...> |> EMapper.map(%Employee{id: 1}, Employee, id: :ignore!, short_name: :first_name, full_name: & &1.first_name <> " " <> &1.last_name)
+    ...> |> EMapper.map(%Employee{id: 1}, Employee,
+    ...> id: :ignore!,
+    ...> short_name: :first_name,
+    ...> full_name: & &1.first_name <> " " <> &1.last_name)
     %Employee{id: 1, short_name: "John", full_name: "John Savage"}
+
+  ```
   """
   @spec map(
           struct,
@@ -350,9 +415,14 @@ defmodule EMapper do
 
   ## Examples:
 
+  ```elixir
     iex> EMapper.add_reduce(Transaction, Balance, amount: 0, amount: & &2 + &1.amount)
-    iex> [%Transaction{id: 1, amount: 20}, %Transaction{id: 2, amount: -4}] |> EMapper.reduce(Balance)
+    iex> [%Transaction{id: 1, amount: 20},
+    ...> %Transaction{id: 2, amount: -4}]
+    ...> |> EMapper.reduce(Balance)
     %Balance{id: nil, amount: 16}
+
+  ```
   """
   @spec reduce(list(struct), atom) :: term
   def reduce(elements, type)
@@ -393,9 +463,13 @@ defmodule EMapper do
 
   ## Examples:
 
-    iex> [%Transaction{id: 1, amount: 20}, %Transaction{id: 2, amount: -4}]
+  ```elixir
+    iex> [%Transaction{id: 1, amount: 20},
+    ...> %Transaction{id: 2, amount: -4}]
     ...> |> EMapper.reduce(Balance, amount: 0, amount: & &2 + &1.amount)
     %Balance{id: nil, amount: 16}
+
+  ```
   """
   @spec reduce(list(struct), atom, list({atom, (term, term -> term) | term})) :: term
   def reduce(elements, type, options)
@@ -416,10 +490,13 @@ defmodule EMapper do
 
   ## Examples:
 
+  ```elixir
     iex> EMapper.add_reduce(Transaction, Balance, amount: & &2 + &1.amount)
     iex> [%Transaction{id: 1, amount: 20}, %Transaction{id: 2, amount: -150}]
     ...> |> EMapper.reduce(%Balance{id: 1, amount: 400}, Balance)
     %Balance{id: 1, amount: 400 + 20 - 150}
+
+  ```
   """
   @spec reduce(list(struct), term, atom) :: term
   def reduce(elements, item, type)
@@ -462,9 +539,12 @@ defmodule EMapper do
 
   ## Examples:
 
+  ```elixir
     iex> [%Transaction{id: 1, amount: 20}, %Transaction{id: 2, amount: -150}]
     ...> |> EMapper.reduce(%Balance{id: 1, amount: 400}, Balance, amount: & &2 + &1.amount)
     %Balance{id: 1, amount: 400 + 20 - 150}
+
+  ```
   """
   @spec reduce(list(struct), term, atom, list({atom, (term, term -> term) | term})) :: term
   def reduce(elements, item, type, options)
