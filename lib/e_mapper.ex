@@ -36,7 +36,7 @@ defmodule EMapper do
   @spec map(
           list(struct),
           atom,
-          list({:after_map | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
+          list({:after_map! | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
         ) :: list(term)
   def map(elements, type, options)
       when is_list(elements) and is_atom(type) and is_list(options) do
@@ -46,7 +46,7 @@ defmodule EMapper do
   @spec map(
           struct,
           atom,
-          list({:after_map | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
+          list({:after_map! | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
         ) :: term
   def map(el, type, options) when is_atom(type) do
     with f when is_function(f) <- options[type] do
@@ -62,7 +62,7 @@ defmodule EMapper do
           list(struct),
           term,
           atom,
-          list({:after_map | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
+          list({:after_map! | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
         ) :: list(term)
   def map(elements, item, type, options)
       when is_list(elements) and is_atom(type) and is_list(options) do
@@ -73,7 +73,7 @@ defmodule EMapper do
           struct,
           term,
           atom,
-          list({:after_map | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
+          list({:after_map! | atom, (term, term -> term) | (term -> term) | :ignore! | atom})
         ) :: term
   def map(el, item, type, options) when is_atom(type) do
     with f when is_function(f) <- options[type] do
@@ -87,36 +87,57 @@ defmodule EMapper do
 
   # reduce
 
-  @spec reduce(list(struct), atom, atom) :: term
-  def reduce(elements, type_1, type_2)
-      when is_list(elements) and is_atom(type_1) and is_atom(type_2) do
-    opts = type_1 |> Utils.get_reduce_atom() |> Server.get_mapping(type_2)
+  @spec reduce(list(struct), atom) :: term
+  def reduce(elements, type)
+      when is_list(elements) and is_atom(type) do
+    case elements do
+      [] ->
+        Utils.fill_item(nil, type, [])
 
-    reduce(elements, type_2, opts)
+      elements ->
+        opts =
+          elements
+          |> List.first()
+          |> Map.get(:__struct__)
+          |> Utils.get_reduce_atom()
+          |> Server.get_mapping(type)
+
+        reduce(elements, type, opts)
+    end
   end
 
   @spec reduce(list(struct), atom, list({atom, (term, term -> term) | term})) :: term
   def reduce(elements, type, options)
       when is_list(elements) and is_atom(type) and is_list(options) do
-    item = type |> struct()
-    reduce(elements, item, options)
+    reduce(elements, nil, type, options)
   end
 
-  @spec reduce(list(struct), atom, struct) :: term
-  def reduce(elements, type_1, item)
-      when is_list(elements) and is_atom(type_1) do
-    opts = type_1 |> Utils.get_reduce_atom() |> Server.get_mapping(Map.get(item, :__struct__))
+  @spec reduce(list(struct), term, atom) :: term
+  def reduce(elements, item, type)
+      when is_list(elements) and is_atom(type) do
+    case elements do
+      [] ->
+        Utils.fill_item(item, type, [])
 
-    reduce(elements, item, opts)
+      elements ->
+        opts =
+          elements
+          |> List.first()
+          |> Map.get(:__struct__)
+          |> Utils.get_reduce_atom()
+          |> Server.get_mapping(type)
+
+        reduce(elements, item, type, opts)
+    end
   end
 
-  @spec reduce(list(struct), struct, list({atom, (term, term -> term) | term})) :: term
-  def reduce(elements, item, options)
-      when is_list(elements) and is_list(options) do
+  @spec reduce(list(struct), term, atom, list({atom, (term, term -> term) | term})) :: term
+  def reduce(elements, item, type, options)
+      when is_list(elements) and is_atom(type) and is_list(options) do
     elements
     |> Enum.reduce(
-      item |> Utils.fill_struct(options),
-      &Utils.reduce(&1, &2, Map.get(item, :__struct__), options)
+      item |> Utils.fill_item(type, options),
+      &Utils.reduce(&1, &2, type, options)
     )
   end
 end

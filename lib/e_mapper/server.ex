@@ -17,12 +17,12 @@ defmodule EMapper.Server do
     end
   end
 
-  @spec add_mapping(atom, atom, list({atom, (term -> term) | :ignore! | atom})) :: :ok | {:error, term}
+  @spec add_mapping(atom, atom, list({:after_map! | atom, (term, term -> term) | (term -> term) | :ignore! | atom})) :: :ok | {:error, term}
   def add_mapping(type_1, type_2, opts) do
     GenServer.cast(__MODULE__, {:add_mapping, {{type_1, type_2}, opts}})
   end
 
-  @spec add_mapping(atom, atom, list({atom, (term -> term) | :ignore! | atom}), :reverse_map) :: :ok | {:error, term}
+  @spec add_mapping(atom, atom, list({:after_map! | atom, (term, term -> term) | (term -> term) | :ignore! | atom}), :reverse_map) :: :ok | {:error, term}
   def add_mapping(type_1, type_2, opts, :reverse_map) do
     reverse_options =
       opts

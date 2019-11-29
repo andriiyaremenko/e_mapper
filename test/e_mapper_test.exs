@@ -25,6 +25,8 @@ defmodule EMapperTest do
     end)
   end
 
+  # map
+
   test "can map automatically" do
     assert EMapper.map(%Test{id: 1, value: 3}, TestViewModel) == %TestViewModel{id: 1, value: 3}
   end
@@ -121,6 +123,18 @@ defmodule EMapperTest do
            ]
   end
 
+  test "can use after_map" do
+    EMapper.add_mapping(Test, Test_2, value_1: :value, after_map!: &%{&2 | value_2: &2.value_2 + &1.value})
+
+    assert EMapper.map(%Test{id: 1, value: 3}, %Test_2{value_2: 5}, Test_2) == %Test_2{
+             id: 1,
+             value_1: 3,
+             value_2: 8
+           }
+  end
+
+  # reduce
+
   test "can reduce" do
     assert get_list()
            |> EMapper.reduce(Test_1, id: 1, value_1: 0, value_1: &(&1.value + &2)) == %Test_1{
@@ -132,7 +146,7 @@ defmodule EMapperTest do
   test "can reduce based on mapping profile" do
     EMapper.add_reduce(Test, Test_1, id: 1, value_1: 0, value_1: &(&1.value + &2))
 
-    assert get_list() |> EMapper.reduce(Test, Test_1) == %Test_1{
+    assert get_list() |> EMapper.reduce(Test_1) == %Test_1{
              id: 1,
              value_1: 11
            }
@@ -140,7 +154,10 @@ defmodule EMapperTest do
 
   test "can reduce to existing item" do
     assert get_list()
-           |> EMapper.reduce(%Test_2{value_1: 0, value_2: 7}, id: 1, value_1: &(&1.value + &2)) ==
+           |> EMapper.reduce(%Test_2{value_1: 0, value_2: 7}, Test_2,
+             id: 1,
+             value_1: &(&1.value + &2)
+           ) ==
              %Test_2{
                id: 1,
                value_1: 11,
@@ -150,13 +167,37 @@ defmodule EMapperTest do
 
   test "can reduce to existing item based on mapping profile" do
     EMapper.add_reduce(Test, Test_2, value_1: &(&1.value + &2))
+
     assert get_list()
-           |> EMapper.reduce(Test, %Test_2{id: 1, value_1: 0, value_2: 7}) ==
+           |> EMapper.reduce(%Test_2{id: 1, value_1: 0, value_2: 7}, Test_2) ==
              %Test_2{
                id: 1,
                value_1: 11,
                value_2: 7
              }
+  end
+
+  test "can reduce to any type" do
+    assert get_list()
+           |> EMapper.reduce(:string,
+             string:
+               &if &2 == nil do
+                 "#{&1.value}, "
+               else
+                 "#{&2}#{&1.value}, "
+               end
+           ) == "2, 4, 5, "
+
+    EMapper.add_reduce(Test, :number,
+      number:
+        &if &2 != nil do
+          &2 + &1.value
+        else
+          &1.value
+        end
+    )
+
+    assert get_list() |> EMapper.reduce(5, :number) == 5 + 2 + 4 + 5
   end
 
   defp get_list,
