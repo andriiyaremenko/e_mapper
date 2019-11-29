@@ -84,7 +84,7 @@ Adds mapping from `type_1` to `type_2` and reverse mapping from `type_2` to `typ
 
 ```
 
-#EMapper.add_reduce(type_1, type_2, opts)
+# EMapper.add_reduce(type_1, type_2, opts)
 
 Adds mapping from list of `type_1` instances to single instance `type_2`
 
@@ -111,7 +111,7 @@ Adds mapping from list of `type_1` instances to single instance `type_2`
 
 ```
 
-#EMapper.map(elements, type)
+# EMapper.map(elements, type)
 
 Maps `elements` to list of `type` instances based on previously defined scheme in `add_mapping(...)`
 
@@ -135,7 +135,7 @@ Maps `elements` to list of `type` instances based on previously defined scheme i
 
 ```
 
-#EMapper.map(el, type)
+# EMapper.map(el, type)
 
 Maps `el` to `type` instance based on previously defined scheme in `add_mapping(...)`
 
@@ -156,7 +156,7 @@ Maps `el` to `type` instance based on previously defined scheme in `add_mapping(
 
   ```
 
-#EMapper.map(elements, item, type)
+# EMapper.map(elements, item, type)
 
 Maps `elements` to list of `type` instances based on previously defined scheme in `add_mapping(...)` using `item` as seed for each element
 
